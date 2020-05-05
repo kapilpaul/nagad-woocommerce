@@ -1,0 +1,75 @@
+<?php
+
+namespace DCoders\Nagad;
+
+/**
+ * Class Installer
+ * @package DCoders\Nagad
+ */
+class Installer {
+    /**
+     * Run the installer
+     *
+     * @return void
+     */
+    public function run() {
+        $this->add_version();
+        $this->create_tables();
+    }
+
+    /**
+     * Add time and version on DB
+     */
+    public function add_version() {
+        $installed = get_option( 'dc_nagad_installed' );
+
+        if ( ! $installed ) {
+            update_option( 'dc_nagad_installed', time() );
+        }
+
+        update_option( 'dc_nagad_version', DC_NAGAD_VERSION );
+
+    }
+
+    /**
+     * Create necessary database tables
+     *
+     * @return void
+     */
+    public function create_tables() {
+        if ( ! function_exists( 'dbDelta' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        }
+
+        $this->create_transaction_table();
+    }
+
+    /**
+     * Create transactions table
+     *
+     * @return void
+     */
+    public function create_transaction_table() {
+        global $wpdb;
+
+        $charset_collate = $wpdb->get_charset_collate();
+        $table_name = $wpdb->prefix . 'dc_nagad_transactions';
+
+        $schema = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
+                  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+                  `customer_id` varchar(255) DEFAULT NULL,
+                  `payment_id` varchar(255) DEFAULT NULL,
+                  `trx_id` varchar(255) DEFAULT NULL,
+                  `transaction_status` varchar(255) DEFAULT NULL,
+                  `transaction_type` varchar(255) DEFAULT NULL,
+                  `invoice_number` varchar(255) DEFAULT NULL,
+                  `order_number` varchar(15) DEFAULT NULL,
+                  `amount` float NOT NULL DEFAULT '0',
+                  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                  PRIMARY KEY (`id`)
+                ) $charset_collate";
+
+//        dbDelta($schema);
+    }
+}

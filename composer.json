@@ -1,0 +1,22 @@
+{
+    "name": "kapilpaul/dcoders-nagad",
+    "description": "Nagad payment gateway for woocommerce",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Kapil Paul",
+            "email": "kapilpaul007@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "DCoders\\Nagad\\": "includes/"
+        },
+        "files": [
+            "includes/functions.php",
+        ]
+    }
+}
