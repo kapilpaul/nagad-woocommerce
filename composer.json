@@ -16,7 +16,7 @@
             "DCoders\\Nagad\\": "includes/"
         },
         "files": [
-            "includes/functions.php",
+            "includes/functions.php"
         ]
     }
 }

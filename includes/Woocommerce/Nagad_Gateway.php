@@ -40,40 +40,36 @@ class Nagad_Gateway extends WC_Payment_Gateway {
      */
     public function init_form_fields() {
         $this->form_fields = [
-            'enabled'     => [
+            'enabled'                    => [
                 'title'   => __( 'Enable/Disable', 'dc-nagad' ),
                 'type'    => 'checkbox',
                 'label'   => __( 'Enable Nagad', 'dc-nagad' ),
                 'default' => 'yes',
             ],
-            'test_mode'   => [
+            'test_mode'                  => [
                 'title'   => __( 'Test Mode', 'dc-nagad' ),
                 'type'    => 'select',
                 'options' => [ "on" => "ON", "off" => "OFF" ],
                 'default' => __( 'off', 'dc-nagad' ),
             ],
-            'title'       => [
+            'title'                      => [
                 'title'   => __( 'Title', 'dc-nagad' ),
                 'type'    => 'text',
                 'default' => __( 'Nagad Payment', 'dc-nagad' ),
             ],
-            'username'    => [
-                'title' => __( 'User Name', 'dc-nagad' ),
+            'merchant_id'                => [
+                'title' => __( 'Merchant ID', 'dc-nagad' ),
                 'type'  => 'text',
             ],
-            'password'    => [
-                'title' => __( 'Password', 'dc-nagad' ),
-                'type'  => 'password',
+            'merchant_private_key'       => [
+                'title' => __( 'Merchant Private Key', 'dc-nagad' ),
+                'type'  => 'textarea',
             ],
-            'app_key'     => [
-                'title' => __( 'App Key', 'dc-nagad' ),
-                'type'  => 'text',
+            'payment_gateway_public_key' => [
+                'title' => __( 'Payment Gateway Public Key', 'dc-nagad' ),
+                'type'  => 'textarea',
             ],
-            'app_secret'  => [
-                'title' => __( 'App Secret', 'dc-nagad' ),
-                'type'  => 'text',
-            ],
-            'description' => [
+            'description'                => [
                 'title'       => __( 'Description', 'dc-nagad' ),
                 'type'        => 'textarea',
                 'description' => __( 'Payment method description that the customer will see on your checkout.', 'dc-nagad' ),
@@ -88,7 +84,7 @@ class Nagad_Gateway extends WC_Payment_Gateway {
      *
      * @return void
      */
-    public function init_actions(  ) {
+    public function init_actions() {
         add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
         add_action( 'woocommerce_thankyou_' . $this->id, [ $this, 'thank_you_page' ] );
         add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
@@ -113,6 +109,11 @@ class Nagad_Gateway extends WC_Payment_Gateway {
             $script = "";
         } else {
             $script = "";
+        }
+
+        if ( is_checkout() || is_checkout_pay_page() ) {
+            var_dump(PaymentProcessor::checkout_init('2030044'));
+            exit;
         }
 
         $this->localizeScripts();
