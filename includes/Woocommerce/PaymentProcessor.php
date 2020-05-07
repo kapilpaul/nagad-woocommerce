@@ -25,6 +25,12 @@ class PaymentProcessor extends Nagad_Gateway {
     private static $orderSubmitUrl;
 
     /**
+     * Payment verification url
+     * @var string
+     */
+    private static $verifyPaymentUrl;
+
+    /**
      * initialize the necessary things
      *
      * @return void
@@ -32,10 +38,11 @@ class PaymentProcessor extends Nagad_Gateway {
     public static function init() {
         date_default_timezone_set( 'Asia/Dhaka' );
 
-        $base = "http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs/check-out/";
+        $base = "http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs/";
 
-        self::$orderCreateUrl = $base . "initialize/" . self::get_pgw_option( 'merchant_id' ) . "/";
-        self::$orderSubmitUrl = $base . "complete/";
+        self::$orderCreateUrl   = $base . "check-out/initialize/" . self::get_pgw_option( 'merchant_id' ) . "/";
+        self::$orderSubmitUrl   = $base . "check-out/complete/";
+        self::$verifyPaymentUrl = $base . "verify/payment/";
     }
 
     /**
@@ -50,20 +57,21 @@ class PaymentProcessor extends Nagad_Gateway {
         $error_message = '';
 
         //creating order request
-        $response = self::checkout_init( $order_no, $mobile_number );
+        $order_id = self::generate_random_string( 5 ) . $order_no;
+        $response = self::checkout_init( $order_id, $mobile_number );
 
         if ( isset( $response['sensitiveData'] ) && isset( $response['signature'] ) ) {
             if ( $response['sensitiveData'] != "" && $response['signature'] != "" ) {
                 //execute order request
-                $execute = self::execute_payment( $response['sensitiveData'], $order_no, $amount );
+                $execute = self::execute_payment( $response['sensitiveData'], $order_id, $amount, $order_no );
 
                 if ( $execute ) {
                     if ( $execute['status'] == "Success" ) {
                         $url = json_encode( $execute['callBackUrl'] );
 
-                        return $url;
+                        return [ 'status' => 'success', 'url' => esc_url_raw( $url ) ];
                     } else {
-                        $error_message = $execute['message'];
+                        $error_message = "execute fail: " . $execute['message'];
                     }
                 }
             }
@@ -75,37 +83,40 @@ class PaymentProcessor extends Nagad_Gateway {
     }
 
     /**
-     * @param $order_no
+     * @param $order_id
      * @param bool $mobile_number
      *
      * @return mixed
      */
-    public static function checkout_init( $order_no, $mobile_number = false ) {
+    public static function checkout_init( $order_id, $mobile_number = false ) {
+        $sensitive_data = self::get_sensitive_data( $order_id );
+
         $checkout_init_data = [
             'dateTime'      => date( 'YmdHis' ),
-            'sensitiveData' => self::encrypted_sensitive_data( $order_no ),
-            'signature'     => self::generate_signature_with_sensitive_data( $order_no ),
+            'sensitiveData' => self::encrypt_data_with_public_key( $sensitive_data ),
+            'signature'     => self::generate_signature( $sensitive_data ),
         ];
 
         if ( $mobile_number ) {
             $checkout_init_data['accountNumber'] = $mobile_number;
         }
 
-        $url = self::$orderCreateUrl . $order_no;
-
-        $response = self::makeRequest( $url, $checkout_init_data );
+        $url      = self::$orderCreateUrl . $order_id;
+        $response = self::make_request( $url, $checkout_init_data );
 
         return $response;
     }
 
     /**
      * @param $sensitive_data
-     * @param $order_no
+     * @param $order_id
      * @param $amount
+     *
+     * @param $original_order_no
      *
      * @return false|string
      */
-    public static function execute_payment( $sensitive_data, $order_no, $amount ) {
+    public static function execute_payment( $sensitive_data, $order_id, $amount, $original_order_no ) {
         $decrypted_response = json_decode( self::decrypt_data_with_private_key( $sensitive_data ), true );
 
         if ( isset( $decrypted_response['paymentReferenceId'] ) && isset( $decrypted_response['challenge'] ) ) {
@@ -113,26 +124,46 @@ class PaymentProcessor extends Nagad_Gateway {
 
             $order_sensitive_data = [
                 'merchantId'   => self::get_pgw_option( 'merchant_id' ),
-                'orderId'      => $order_no,
+                'orderId'      => $order_id,
                 'currencyCode' => '050',
                 'amount'       => $amount,
                 'challenge'    => $decrypted_response['challenge'],
             ];
 
             $order_post_data = [
-                'sensitiveData'       => self::encrypt_data_with_public_key( json_encode( $order_sensitive_data ) ),
-                'signature'           => self::generate_signature( json_encode( $order_sensitive_data ) ),
-                'merchantCallbackURL' => "https://MERCHANT-WEBSITE:PORT/merchant-callback-website",
+                'sensitiveData'          => self::encrypt_data_with_public_key( $order_sensitive_data ),
+                'signature'              => self::generate_signature( $order_sensitive_data ),
+                'merchantCallbackURL'    => site_url( '/dc-nagad/payment/action/' ),
+                'additionalMerchantInfo' => [
+                    'order_no' => $original_order_no,
+                ],
             ];
 
             $url = self::$orderSubmitUrl . $payment_reference_id;
 
-            $response = self::makeRequest( $url, $order_post_data );
+            $response = self::make_request( $url, $order_post_data );
 
             return $response;
         }
 
         return false;
+    }
+
+    /**
+     * Verify nagad payment
+     *
+     * @param $payment_reference_id
+     *
+     * @return mixed
+     */
+    public static function verify_payment( $payment_reference_id ) {
+        self::init();
+
+        $url      = self::$verifyPaymentUrl . $payment_reference_id;
+        $response = wp_remote_get( esc_url_raw( $url ) );
+        $result   = json_decode( wp_remote_retrieve_body( $response ), true );
+
+        return $result;
     }
 
     /**
@@ -177,7 +208,7 @@ class PaymentProcessor extends Nagad_Gateway {
             $random_string .= $characters[ rand( 0, $characters_length - 1 ) ];
         }
 
-        return "S5BkzpsChETcW0XvAdsFRM4BgilJdRK4S5FnsfLd";// $random_string;
+        return $random_string;
     }
 
     /**
@@ -186,6 +217,10 @@ class PaymentProcessor extends Nagad_Gateway {
      * @return string
      */
     public static function encrypt_data_with_public_key( $data ) {
+        if ( gettype( $data ) == 'array' ) {
+            $data = json_encode( $data );
+        }
+
         $pgw_public_key = self::get_pgw_option( 'payment_gateway_public_key' );
         $public_key     = "-----BEGIN PUBLIC KEY-----\n" . $pgw_public_key . "\n-----END PUBLIC KEY-----";
         $key_resource   = openssl_get_publickey( $public_key );
@@ -203,6 +238,10 @@ class PaymentProcessor extends Nagad_Gateway {
      * @return string
      */
     public static function generate_signature( $data ) {
+        if ( gettype( $data ) == 'array' ) {
+            $data = json_encode( $data );
+        }
+
         $private_key = self::format_private_key();
         openssl_sign( $data, $signature, $private_key, OPENSSL_ALGO_SHA256 );
 
@@ -212,13 +251,13 @@ class PaymentProcessor extends Nagad_Gateway {
     /**
      * decrypt data with private key
      *
-     * @param $crypttext
+     * @param $crypt_text
      *
      * @return mixed
      */
-    public static function decrypt_data_with_private_key( $crypttext ) {
+    public static function decrypt_data_with_private_key( $crypt_text ) {
         $private_key = self::format_private_key();
-        openssl_private_decrypt( base64_decode( $crypttext ), $plain_text, $private_key );
+        openssl_private_decrypt( base64_decode( $crypt_text ), $plain_text, $private_key );
 
         return $plain_text;
     }
@@ -252,32 +291,6 @@ class PaymentProcessor extends Nagad_Gateway {
         ];
 
         return $sensitive_data;
-    }
-
-    /**
-     * Encrypt sensitive data with public key
-     *
-     * @param $order_no
-     *
-     * @return string
-     */
-    public static function encrypted_sensitive_data( $order_no ) {
-        $sensitive_data = json_encode( self::get_sensitive_data( $order_no ) );
-
-        return self::encrypt_data_with_public_key( $sensitive_data );
-    }
-
-    /**
-     * Generate signature with sensitive data
-     *
-     * @param $order_no
-     *
-     * @return string
-     */
-    public static function generate_signature_with_sensitive_data( $order_no ) {
-        $sensitive_data = json_encode( self::get_sensitive_data( $order_no ) );
-
-        return self::generate_signature( $sensitive_data );
     }
 
     /**
@@ -315,8 +328,8 @@ class PaymentProcessor extends Nagad_Gateway {
      *
      * @return mixed
      */
-    public static function makeRequest( $url, $data ) {
-        $args = array(
+    public static function make_request( $url, $data ) {
+        $args = [
             'body'        => json_encode( $data ),
             'timeout'     => '30',
             'redirection' => '30',
@@ -324,7 +337,7 @@ class PaymentProcessor extends Nagad_Gateway {
             'blocking'    => true,
             'headers'     => self::getHeader(),
             'cookies'     => [],
-        );
+        ];
 
         $response = wp_remote_retrieve_body( wp_remote_post( esc_url_raw( $url ), $args ) );
 
@@ -343,6 +356,7 @@ class PaymentProcessor extends Nagad_Gateway {
             'X-KM-IP-V4'       => self::get_client_ip(),
             'X-KM-Client-Type' => 'PC_WEB',
         ];
+
 
         return $headers;
     }

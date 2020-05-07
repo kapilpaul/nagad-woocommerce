@@ -105,16 +105,8 @@ class Nagad_Gateway extends WC_Payment_Gateway {
             return;
         }
 
-        if ( $this->get_option( 'test_mode' ) == 'off' ) {
-            $script = "";
-        } else {
-            $script = "";
-        }
-
-        if ( is_checkout() || is_checkout_pay_page() ) {
-            var_dump(PaymentProcessor::checkout_init('2030044'));
-            exit;
-        }
+        wp_enqueue_style( 'dc-nagad-frontend' );
+        wp_enqueue_script( 'dc-nagad-frontend' );
 
         $this->localizeScripts();
     }
@@ -133,6 +125,61 @@ class Nagad_Gateway extends WC_Payment_Gateway {
             'nonce'    => wp_create_nonce( 'dc-nagad-nonce' ),
         ];
 
-//        wp_localize_script( 'bkash_checkout', 'bkash_params', $data );
+        wp_localize_script( 'dc-nagad-frontend', 'nagad_params', $data );
+    }
+
+    /**
+     * Process the gateway integration
+     *
+     * @param int $order_id
+     *
+     * @return array
+     */
+    public function process_payment( $order_id ) {
+        $order = wc_get_order( $order_id );
+        // Remove cart
+        WC()->cart->empty_cart();
+
+        $payment_process = PaymentProcessor::checkout( $order->get_id(), $order->get_total() );
+
+        $url = $payment_process['status'] == 'success' ? $payment_process['url'] : $order->get_checkout_payment_url();
+
+        return [
+            'result'   => 'success',
+            'redirect' => esc_url_raw( $url ),
+        ];
+    }
+
+    /**
+     * Thank you page after order
+     *
+     * @param $order_id
+     *
+     * @return void
+     */
+    public function thank_you_page( $order_id ) {
+        $order = wc_get_order( $order_id );
+
+        if ( 'dc_nagad' === $order->get_payment_method() ) {
+            $payment_data = get_nagad_payment( $order_id );
+
+            if($payment_data) {
+                $status = $payment_data->transaction_status;
+            }
+
+    ?>
+            <ul class="woocommerce-order-overview woocommerce-thankyou-order-details order_details">
+                <li class="woocommerce-order-overview__payment-method method">
+                    Payment Status:
+                    <?php if ( isset( $status ) ) { ?>
+                        <strong><?php echo strtoupper( $status ); ?></strong>
+                    <?php } else { ?>
+                        <strong><?php echo __( 'NOT PAID', 'dc-nagad' ); ?></strong>
+                    <?php } ?>
+                </li>
+            </ul>
+    <?php
+        }
+
     }
 }

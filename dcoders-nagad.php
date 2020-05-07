@@ -69,7 +69,7 @@ final class DCoders_Nagad {
      *
      * @var array
      */
-    private $container = array();
+    private $container = [];
 
     /**
      * Constructor for the DCoders_Nagad class
@@ -80,10 +80,10 @@ final class DCoders_Nagad {
     private function __construct() {
         $this->define_constants();
 
-        register_activation_hook( __FILE__, array( $this, 'activate' ) );
-        register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+        register_activation_hook( __FILE__, [ $this, 'activate' ] );
+        register_deactivation_hook( __FILE__, [ $this, 'deactivate' ] );
 
-        add_action( 'plugins_loaded', array( $this, 'init_plugin' ) );
+        add_action( 'plugins_loaded', [ $this, 'init_plugin' ] );
     }
 
     /**
@@ -156,13 +156,14 @@ final class DCoders_Nagad {
     }
 
     /**
-     * Placeholder for activation function
      *
-     * Nothing being called here yet.
+     *
+     * @return void
      */
     public function activate() {
         $installer = new DCoders\Nagad\Installer();
         $installer->run();
+        flush_rewrite_rules();
     }
 
     /**
@@ -171,7 +172,7 @@ final class DCoders_Nagad {
      * Nothing being called here yet.
      */
     public function deactivate() {
-
+        flush_rewrite_rules();
     }
 
     /**
@@ -180,7 +181,7 @@ final class DCoders_Nagad {
      * @return void
      */
     public function init_filters() {
-        add_filter( 'woocommerce_payment_gateways', array( $this, 'register_gateway' ) );
+        add_filter( 'woocommerce_payment_gateways', [ $this, 'register_gateway' ] );
     }
 
     /**
@@ -204,10 +205,20 @@ final class DCoders_Nagad {
      * @return void
      */
     public function init_hooks() {
-        add_action( 'init', array( $this, 'init_classes' ) );
+        add_action( 'init', [ $this, 'init_classes' ] );
 
         // Localize our plugin
-        add_action( 'init', array( $this, 'localization_setup' ) );
+        add_action( 'init', [ $this, 'localization_setup' ] );
+
+        add_action( 'init', [ $this, 'custom_add_rewrite_rule' ] );
+    }
+
+    /**
+     * @return void
+     */
+    public function custom_add_rewrite_rule() {
+        add_rewrite_rule( '^dc-nagad/payment/action/?', 'index.php?dc_nagad_action=dc-payment-action', 'top' );
+        flush_rewrite_rules();
     }
 
     /**
@@ -217,11 +228,11 @@ final class DCoders_Nagad {
      */
     public function init_classes() {
         if ( $this->is_request( 'ajax' ) ) {
-             $this->container['ajax'] =  new DCoders\Nagad\Frontend\Ajax();
+            $this->container['ajax'] = new DCoders\Nagad\Frontend\Ajax();
         }
 
-//        $this->container['api']    = new DCoders\Nagad\Api();
-        $this->container['assets'] = new DCoders\Nagad\Assets();
+        $this->container['assets']         = new DCoders\Nagad\Assets();
+        $this->container['dc_nagad_pages'] = new DCoders\Nagad\PageHandler();
     }
 
     /**
@@ -271,7 +282,6 @@ final class DCoders_Nagad {
                 return ( ! is_admin() || defined( 'DOING_AJAX' ) ) && ! defined( 'DOING_CRON' );
         }
     }
-
 } // DCoders_Nagad
 
 /**

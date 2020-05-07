@@ -25,7 +25,10 @@ class Menu {
         $parent_slug = 'dc-nagad';
         $capability  = 'manage_options';
 
-        $hook = add_menu_page( __( 'Nagad Payments', 'dc-nagad' ), __( 'Nagad', 'dc-nagad' ), $capability, $parent_slug, [ $this, 'nagad_page' ],  DC_NAGAD_ASSETS . '/images/bkash.png');
+        $hook = add_menu_page( __( 'Nagad Payments', 'dc-nagad' ), __( 'Nagad', 'dc-nagad' ), $capability, $parent_slug, [
+            $this,
+            'nagad_page',
+        ], DC_NAGAD_ASSETS . '/images/nagad.png' );
 
         add_action( 'load-' . $hook, [ $this, 'init_hooks' ] );
     }
@@ -49,11 +52,12 @@ class Menu {
     }
 
     /**
-     * Render our admin page
+     * Render admin plugin page
      *
      * @return void
      */
     public function nagad_page() {
-        echo '<div class="wrap"><div id="vue-admin-app"></div></div>';
+        $payments = new Payments();
+        $payments->plugin_page();
     }
 }
