@@ -51,10 +51,10 @@ class PageHandler {
      * @return bool
      */
     public function handle_nagad_payment_action( $params ) {
-        $order_number = substr( $params['order_id'], 5 );
+        $order_number = sanitize_text_field( substr( $params['order_id'], 5 ) );
         $order        = wc_get_order( $order_number );
 
-        if ( $params['status'] == 'Success' && $params['status_code'] == "00_0000_000" ) {
+        if ( $params['status'] == 'Success' && $params['status_code'] == "00_0000_000" && ! get_nagad_payment( $order_number ) ) {
             $verification = PaymentProcessor::verify_payment( $params['payment_ref_id'] );
 
             if ( $verification['status'] == 'Success' && $verification['statusCode'] == '000' ) {
@@ -73,13 +73,13 @@ class PageHandler {
 
                     $order->add_order_note( sprintf( __( 'Nagad payment completed. Amount: %s', 'dc-nagad' ), $order->get_total() ) );
                     $order->payment_complete();
-                } else {
-                    $order->update_status(
-                        'on-hold',
-                        __( 'Partial payment. Amount: %s', 'dc-nagad' ),
-                        sanitize_text_field( $verification['amount'] )
-                    );
                 }
+            } else {
+                $order->update_status(
+                    'on-hold',
+                    __( 'Partial payment. Amount: %s', 'dc-nagad' ),
+                    sanitize_text_field( $verification['amount'] )
+                );
             }
         }
 
