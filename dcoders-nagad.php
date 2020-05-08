@@ -1,9 +1,9 @@
 <?php
 /*
 Plugin Name: Nagad Payment Gateway
-Plugin URI: https://example.com/
+Plugin URI: https://kapilpaul.me/
 Description: Nagad payment gateway for woocommerce
-Version: 1.0
+Version: 1.0.0
 Author: Kapil Paul
 Author URI: https://kapilpaul.me/
 License: GPL2
