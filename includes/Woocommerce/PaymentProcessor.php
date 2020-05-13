@@ -2,6 +2,9 @@
 
 namespace DCoders\Nagad\Woocommerce;
 
+use DateTime;
+use DateTimeZone;
+
 /**
  * Class PaymentProcessor
  * @package DCoders\Nagad\Woocommerce
@@ -36,8 +39,6 @@ class PaymentProcessor extends Nagad_Gateway {
      * @return void
      */
     public static function init() {
-        date_default_timezone_set( 'Asia/Dhaka' );
-
         $base = "http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs/";
 
         self::$orderCreateUrl   = $base . "check-out/initialize/" . self::get_pgw_option( 'merchant_id' ) . "/";
@@ -51,6 +52,7 @@ class PaymentProcessor extends Nagad_Gateway {
      * @param bool $mobile_number
      *
      * @return array|false|string
+     * @throws \Exception
      */
     public static function checkout( $order_no, $amount, $mobile_number = false ) {
         self::init();
@@ -87,12 +89,13 @@ class PaymentProcessor extends Nagad_Gateway {
      * @param bool $mobile_number
      *
      * @return mixed
+     * @throws \Exception
      */
     public static function checkout_init( $order_id, $mobile_number = false ) {
         $sensitive_data = self::get_sensitive_data( $order_id );
 
         $checkout_init_data = [
-            'dateTime'      => date( 'YmdHis' ),
+            'dateTime'      => self::get_current_bd_time(),
             'sensitiveData' => self::encrypt_data_with_public_key( $sensitive_data ),
             'signature'     => self::generate_signature( $sensitive_data ),
         ];
@@ -281,11 +284,12 @@ class PaymentProcessor extends Nagad_Gateway {
      * @param $order_no
      *
      * @return array
+     * @throws \Exception
      */
     public static function get_sensitive_data( $order_no ) {
         $sensitive_data = [
             'merchantId' => self::get_pgw_option( 'merchant_id' ),
-            'datetime'   => date( 'YmdHis' ),
+            'datetime'   => self::get_current_bd_time(),
             'orderId'    => $order_no,
             'challenge'  => self::generate_random_string(),
         ];
@@ -335,7 +339,7 @@ class PaymentProcessor extends Nagad_Gateway {
             'redirection' => '30',
             'httpversion' => '1.0',
             'blocking'    => true,
-            'headers'     => self::getHeader(),
+            'headers'     => self::get_header(),
             'cookies'     => [],
         ];
 
@@ -349,7 +353,7 @@ class PaymentProcessor extends Nagad_Gateway {
      *
      * @return array
      */
-    public static function getHeader() {
+    public static function get_header() {
         $headers = [
             'Content-Type'     => 'application/json',
             'X-KM-Api-Version' => 'v-0.2.0',
@@ -359,5 +363,22 @@ class PaymentProcessor extends Nagad_Gateway {
 
 
         return $headers;
+    }
+
+    /**
+     * Get current time of BD
+     *
+     * @param string $format
+     *
+     * @param string $timezone
+     *
+     * @return string
+     * @throws \Exception
+     */
+    public static function get_current_bd_time( $format = "YmdHis", $timezone = "Asia/Dhaka" ) {
+        $timezone = new DateTimeZone( $timezone );
+        $datetime = new DateTime( 'now', $timezone );
+
+        return $datetime->format( $format );
     }
 }

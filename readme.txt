@@ -1,4 +1,4 @@
-=== Nagad Payment Gateway ===
+=== DC Nagad Payment ===
 Contributors: kapilpaul
 Donate link: https://kapilpaul.me/
 Tags: nagad, bdt, bangladesh, bd payment gateway

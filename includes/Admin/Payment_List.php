@@ -64,8 +64,8 @@ class Payment_List extends \WP_List_Table {
         ];
 
         if ( isset( $_GET['orderby'] ) && isset( $_GET['order'] ) ) {
-            $args['orderby'] = $_GET['orderby'];
-            $args['order']   = $_GET['order'];
+            $args['orderby'] = sanitize_key( $_GET['orderby'] );
+            $args['order']   = sanitize_key( $_GET['order'] );
         }
 
         if ( $search != '' ) {

@@ -35,7 +35,9 @@ class PageHandler {
      */
     function plugin_include_template( $template ) {
         if ( get_query_var( 'dc_nagad_action' ) && get_query_var( 'dc_nagad_action' ) == 'dc-payment-action' ) {
-            $params = $_GET;
+            $params = array_map( function ( $item ) {
+                return sanitize_text_field( $item );
+            }, $_GET );
 
             $this->handle_nagad_payment_action( $params );
         }
