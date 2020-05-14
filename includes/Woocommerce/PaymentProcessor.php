@@ -39,7 +39,13 @@ class PaymentProcessor extends Nagad_Gateway {
      * @return void
      */
     public static function init() {
-        $base = "http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs/";
+        $test_mode = self::get_pgw_option( 'test_mode' );
+
+        if ( $test_mode == 'on' ) {
+            $base = "http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs/";
+        } else {
+            $base = "https://api.mynagad.com/api/dfs/";
+        }
 
         self::$orderCreateUrl   = $base . "check-out/initialize/" . self::get_pgw_option( 'merchant_id' ) . "/";
         self::$orderSubmitUrl   = $base . "check-out/complete/";

@@ -22,7 +22,7 @@ Woocommerce payment method for Nagad for easy checkout. This plugin helps you to
 1. After activate the plugin you need to go to Woocommerce settings for payments. Here you can see NAGAD as a payment method. Enable this and open settings for this payment method.
 2. Collect your Merchant ID, Merchant Public Key, Merchant Private Key from Nagad. Place this in here and you are able to collect your payment.
 
-[youtube https://www.youtube.com/watch?v=U83RE3Kfy1A]
+[youtube https://www.youtube.com/watch?v=g6i3_n1jugQ]
 
 = Contribute =
 
@@ -67,10 +67,9 @@ Yes. Follow the installation process and you are good to go.
 
 1. Admin panel payment methods list
 2. Admin panel Nagad payment method settings
-3. Order details data
-4. Nagad as a payment method
-5. Nagad main payment
-6. Nagad Payment List
+3. Nagad as a payment method
+4. Nagad main payment
+5. Nagad Payment List
 
 == Changelog ==
 
