@@ -60,28 +60,28 @@ class PageHandler {
             $verification = PaymentProcessor::verify_payment( $params['payment_ref_id'] );
 
             if ( $verification['status'] == 'Success' && $verification['statusCode'] == '000' ) {
+                $insert_data = [
+                    'customer_id'        => $order->get_customer_id(),
+                    'payment_ref_id'     => sanitize_text_field( $verification['paymentRefId'] ),
+                    'issuer_payment_ref' => sanitize_text_field( $verification['issuerPaymentRefNo'] ),
+                    'invoice_number'     => sanitize_text_field( $verification['orderId'] ),
+                    'order_number'       => sanitize_text_field( $order_number ),
+                    'amount'             => sanitize_text_field( $verification['amount'] ),
+                    'transaction_status' => sanitize_text_field( $verification['status'] ),
+                ];
+
+                insert_nagad_transaction( $insert_data );
+
                 if ( $order->get_total() == $verification['amount'] ) {
-                    $insert_data = [
-                        'customer_id'        => $order->get_customer_id(),
-                        'payment_ref_id'     => sanitize_text_field( $verification['paymentRefId'] ),
-                        'issuer_payment_ref' => sanitize_text_field( $verification['issuerPaymentRefNo'] ),
-                        'invoice_number'     => sanitize_text_field( $verification['orderId'] ),
-                        'order_number'       => sanitize_text_field( $order_number ),
-                        'amount'             => sanitize_text_field( $verification['amount'] ),
-                        'transaction_status' => sanitize_text_field( $verification['status'] ),
-                    ];
-
-                    insert_nagad_transaction( $insert_data );
-
                     $order->add_order_note( sprintf( __( 'Nagad payment completed. Amount: %s', 'dc-nagad' ), $order->get_total() ) );
                     $order->payment_complete();
+                } else {
+                    $order->update_status(
+                        'on-hold',
+                        __( 'Partial payment. Amount: %s', 'dc-nagad' ),
+                        sanitize_text_field( $verification['amount'] )
+                    );
                 }
-            } else {
-                $order->update_status(
-                    'on-hold',
-                    __( 'Partial payment. Amount: %s', 'dc-nagad' ),
-                    sanitize_text_field( $verification['amount'] )
-                );
             }
         }
 

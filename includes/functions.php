@@ -23,13 +23,13 @@ function insert_nagad_transaction( $data ) {
     $table_name = $wpdb->prefix . 'dc_nagad_transactions';
 
     $insert = $wpdb->insert( $table_name, [
-        "customer_id"        => $data['customer_id'],
-        "payment_ref_id"     => $data['payment_ref_id'],
-        "issuer_payment_ref" => $data['issuer_payment_ref'],
-        "invoice_number"     => $data['invoice_number'],
-        "order_number"       => $data['order_number'],
-        "amount"             => $data['amount'],
-        "transaction_status" => $data['transaction_status'],
+        "customer_id"        => sanitize_key( $data['customer_id'] ),
+        "payment_ref_id"     => sanitize_text_field( $data['payment_ref_id'] ),
+        "issuer_payment_ref" => sanitize_text_field( $data['issuer_payment_ref'] ),
+        "invoice_number"     => sanitize_text_field( $data['invoice_number'] ),
+        "order_number"       => sanitize_text_field( $data['order_number'] ),
+        "amount"             => sanitize_text_field( $data['amount'] ),
+        "transaction_status" => sanitize_text_field( $data['transaction_status'] ),
     ] );
 
     return $insert;
