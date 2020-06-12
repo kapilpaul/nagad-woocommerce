@@ -103,3 +103,35 @@ function get_nagad_payments_count() {
 
     return (int) $wpdb->get_var( "SELECT COUNT(id) from $table_name" );
 }
+
+/**
+ * Delete a payment
+ *
+ * @param int $id
+ *
+ * @return int|boolean
+ */
+function delete_nagad_payment( $id ) {
+    global $wpdb;
+
+    return $wpdb->delete(
+        $wpdb->prefix . 'dc_nagad_transactions',
+        [ 'id' => $id ],
+        [ '%d' ]
+    );
+}
+
+/**
+ * delete multiple data from table
+ *
+ * @param array $ids
+ *
+ * @return bool|int
+ */
+function delete_multiple_nagad_payments( array $ids ) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'dc_nagad_transactions';
+
+    $ids = implode( ',', $ids );
+    return $wpdb->query( "DELETE FROM {$table_name} WHERE ID IN($ids)" );
+}

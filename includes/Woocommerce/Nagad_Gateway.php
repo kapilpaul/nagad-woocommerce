@@ -69,6 +69,13 @@ class Nagad_Gateway extends WC_Payment_Gateway {
                 'title' => __( 'Payment Gateway Public Key', 'dc-nagad' ),
                 'type'  => 'textarea',
             ],
+            'payment_process'            => [
+                'title'       => __( 'Payment Request', 'dc-nagad' ),
+                'type'        => 'select',
+                'description' => 'Payment request to nagad via own server or third party server. Because it is found that sometimes nagad request is failed due to conflicts with the theme.',
+                'options'     => [ "own_server" => "Own Server", "third_party" => "Third Party Server" ],
+                'default'     => __( 'own_server', 'dc-nagad' ),
+            ],
             'description'                => [
                 'title'       => __( 'Description', 'dc-nagad' ),
                 'type'        => 'textarea',
@@ -134,6 +141,7 @@ class Nagad_Gateway extends WC_Payment_Gateway {
      * @param int $order_id
      *
      * @return array
+     * @throws \Exception
      */
     public function process_payment( $order_id ) {
         $order = wc_get_order( $order_id );
@@ -163,11 +171,11 @@ class Nagad_Gateway extends WC_Payment_Gateway {
         if ( 'dc_nagad' === $order->get_payment_method() ) {
             $payment_data = get_nagad_payment( $order_id );
 
-            if($payment_data) {
+            if ( $payment_data ) {
                 $status = $payment_data->transaction_status;
             }
 
-    ?>
+            ?>
             <ul class="woocommerce-order-overview woocommerce-thankyou-order-details order_details">
                 <li class="woocommerce-order-overview__payment-method method">
                     Payment Status:
@@ -178,7 +186,7 @@ class Nagad_Gateway extends WC_Payment_Gateway {
                     <?php } ?>
                 </li>
             </ul>
-    <?php
+            <?php
         }
 
     }

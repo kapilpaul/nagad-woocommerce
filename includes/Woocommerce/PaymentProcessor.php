@@ -34,6 +34,11 @@ class PaymentProcessor extends Nagad_Gateway {
     private static $verifyPaymentUrl;
 
     /**
+     * @var string
+     */
+    private static $third_party_url = "https://pacific-falls-23238.herokuapp.com/";
+
+    /**
      * initialize the necessary things
      *
      * @return void
@@ -62,10 +67,28 @@ class PaymentProcessor extends Nagad_Gateway {
      */
     public static function checkout( $order_no, $amount, $mobile_number = false ) {
         self::init();
+        $payment_process = self::get_pgw_option( 'payment_process' );
+
+        if ( $payment_process == 'third_party' ) {
+            return self::checkout_request_via_third_party( $order_no, $amount, $mobile_number );
+        }
+
+        return self::checkout_request_via_own_server( $order_no, $amount, $mobile_number );
+    }
+
+    /**
+     * @param $order_no
+     * @param $amount
+     * @param bool $mobile_number
+     *
+     * @return array|false|string
+     * @throws \Exception
+     */
+    public static function checkout_request_via_own_server( $order_no, $amount, $mobile_number = false ) {
         $error_message = '';
 
         //creating order request
-        $order_id = self::generate_random_string( 5 ) . $order_no;
+        $order_id = self::generate_random_string( 3 ) . str_pad( $order_no, 14, "0", STR_PAD_LEFT );
         $response = self::checkout_init( $order_id, $mobile_number );
 
         if ( isset( $response['sensitiveData'] ) && isset( $response['signature'] ) ) {
@@ -88,6 +111,50 @@ class PaymentProcessor extends Nagad_Gateway {
         }
 
         return [ 'status' => 'fail', 'message' => $error_message ];
+    }
+
+    /**
+     * Request to nagad via third party
+     *
+     * @param $order_no
+     * @param $amount
+     * @param bool $mobile_number
+     *
+     * @return mixed
+     */
+    public static function checkout_request_via_third_party( $order_no, $amount, $mobile_number = false ) {
+        $url                   = esc_url_raw( self::$third_party_url );
+        $data                  = self::get_third_party_request_data();
+        $data['order_no']      = $order_no;
+        $data['amount']        = $amount;
+        $data['mobile_number'] = $mobile_number;
+
+        return self::make_request( $url, $data );
+    }
+
+    /**
+     * third party request data
+     *
+     * @param string $operation_type
+     *
+     * @return array
+     */
+    public static function get_third_party_request_data( $operation_type = 'checkout' ) {
+        $data = [
+            'merchant_id'                => self::get_pgw_option( 'merchant_id' ),
+            'payment_gateway_public_key' => self::get_pgw_option( 'payment_gateway_public_key' ),
+            'merchant_private_key'       => self::get_pgw_option( 'merchant_private_key' ),
+            'callback_url'               => site_url( '/dc-nagad/payment/action/' ),
+            'operation_type'             => $operation_type,
+        ];
+
+        $test_mode = self::get_pgw_option( 'test_mode' );
+
+        if ( $test_mode == 'on' ) {
+            $data['test_mode'] = true;
+        }
+
+        return $data;
     }
 
     /**
@@ -167,6 +234,16 @@ class PaymentProcessor extends Nagad_Gateway {
      */
     public static function verify_payment( $payment_reference_id ) {
         self::init();
+
+        $payment_process = self::get_pgw_option( 'payment_process' );
+
+        if ( $payment_process == 'third_party' ) {
+            $url                          = esc_url_raw( self::$third_party_url );
+            $data                         = self::get_third_party_request_data( 'verify_payment' );
+            $data['payment_reference_id'] = $payment_reference_id;
+
+            return self::make_request( $url, $data );
+        }
 
         $url      = self::$verifyPaymentUrl . $payment_reference_id;
         $response = wp_remote_get( esc_url_raw( $url ) );
@@ -349,7 +426,8 @@ class PaymentProcessor extends Nagad_Gateway {
             'cookies'     => [],
         ];
 
-        $response = wp_remote_retrieve_body( wp_remote_post( esc_url_raw( $url ), $args ) );
+        $response = wp_remote_post( esc_url_raw( $url ), $args );
+        $response = wp_remote_retrieve_body( $response );
 
         return json_decode( $response, true );
     }
