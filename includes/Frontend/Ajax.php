@@ -43,7 +43,11 @@ class Ajax {
 
             $url = $payment_process['status'] == 'success' ? $payment_process['url'] : $order->get_checkout_payment_url();
 
-            wp_send_json_success( esc_url_raw( $url ) );
+            if ( $payment_process['status'] == 'success' ) {
+                wp_send_json_success( esc_url_raw( $url ) );
+            }
+
+            wp_send_json_error( $payment_process );
 
         } catch ( \Exception $e ) {
             $this->send_json_error( $e->getMessage() );

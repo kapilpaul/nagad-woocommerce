@@ -33,10 +33,36 @@ jQuery(function($) {
                         data = data.data;
                         window.location = data;
                     }
+
+                    let error_message = data.data;
+                    error_message = error_message.replace('<html><head><title>Request Rejected</title></head><body>', '');
+                    error_message = error_message.replace('<br><br><a href=\'javascript:history.back();\'>[Go Back]</a></body></html>', '');
+                    error_message = error_message.replace('<br><br>', ' ');
+                    error_message = error_message + '. Please contact with Nagad with support ID';
+
+                    dc_nagad.show_error(error_message);
                 },
                 error: function(errorMessage) {
                 }
             });
+        },
+        show_error: function(error_message) {
+            $(".woocommerce-notices-wrapper").remove();
+            $(dc_nagad.order_review).prepend(
+                '<div class="woocommerce-notices-wrapper"><div class="nagad-error-notice">' + error_message + "</div></div>"
+            );
+            $(dc_nagad.order_review).removeClass("processing").unblock();
+
+            dc_nagad.scroll_to_notices_review();
+            $(document.body).trigger("checkout_error");
+        },
+        scroll_to_notices_review: function() {
+            var scrollElement = $(".woocommerce-notices-wrapper");
+
+            if (!scrollElement.length) {
+                scrollElement = $(dc_nagad.order_review);
+            }
+            $.scroll_to_notices(scrollElement);
         },
         init: function() {
             $(dc_nagad.order_review).on("submit", dc_nagad.order_review_submit);

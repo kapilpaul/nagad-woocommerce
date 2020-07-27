@@ -188,6 +188,34 @@ class Nagad_Gateway extends WC_Payment_Gateway {
             </ul>
             <?php
         }
+    }
 
+    /**
+     * Processes and saves options.
+     * If there is an error thrown, will continue to save and validate fields, but will leave the erroring field out.
+     *
+     * @return bool was anything saved?
+     */
+    public function process_admin_options() {
+        if ( parent::process_admin_options() ) {
+            add_action( 'admin_notices', [ $this, 'admin_notice' ] );
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * show admin notice after updating options
+     *
+     * @return void
+     */
+    public function admin_notice() {
+        ?>
+        <div class="notice notice-warning is-dismissible">
+            <p><?php _e( 'You need to add callback url: <i><b>' . site_url('/dc-nagad/payment/action/') . '</b></i> on your nagad merchant panel. If you have already added this please ignore.', 'dc-nagad' ); ?></p>
+        </div>
+        <?php
     }
 }

@@ -3,7 +3,7 @@
 Plugin Name: DC Nagad Payment
 Plugin URI: https://kapilpaul.me/projects/wordpress/nagad-payment
 Description: Nagad payment gateway for woocommerce.
-Version: 1.0.0
+Version: 1.1.0
 Author: Kapil Paul
 Author URI: https://kapilpaul.me/
 License: GPL2

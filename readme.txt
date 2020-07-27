@@ -77,3 +77,8 @@ Yes. Follow the installation process and you are good to go.
 
 = 1.0.0 =
 * Initial release
+
+= 1.1.0 =
+* Third party payment request added
+* bulk delete added
+* single delete added

@@ -429,6 +429,10 @@ class PaymentProcessor extends Nagad_Gateway {
         $response = wp_remote_post( esc_url_raw( $url ), $args );
         $response = wp_remote_retrieve_body( $response );
 
+        if ( strpos( $response, 'Your support ID is:' ) ) {
+            return [ 'message' => $response ];
+        }
+
         return json_decode( $response, true );
     }
 
